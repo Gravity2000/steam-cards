@@ -55,16 +55,16 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
     return username
 
 def send_email(to_email:str,card_name:str,price:str,alert_prcie:float):
-    EMAIL_SENDER=os.getenv("EMAIL_SENDER")
-    EMAIL_PASSWORD=os.getenv("EMAIL_PASSWORD")
-    msg=MIMEText(f"你关注的卡牌{card_name}当前价格为{price},已低于你设定的¥{alert_prcie}!")
-    msg["Subject"]=f"steam 价格提醒:{card_name}"
-    msg["From"]=EMAIL_SENDER
-    msg["To"]=to_email
+    import resend
+    resend.api_key=os.getenv("RESEND_API_KEY")
     try:
-        with smtplib.SMTP_SSL("smtp.163.com",465) as server:
-            server.login(EMAIL_SENDER,EMAIL_PASSWORD)
-            server.sendmail(EMAIL_SENDER,to_email,msg.as_string())
+        resend.Email.send({
+            "from":"onboarding@resend.dev",
+            "to":to_email,
+            "sunbject":f"Steam 价格提醒:{card_name}",
+            "text":f"你关注的卡牌{card_name}当前价格为{price},已低于你设定的¥{alert_prcie}!"
+        })
+        print(f"邮件发送成功:{to_email}")
     except Exception as e:
         print(f"邮件发送失败,{e}")
 
