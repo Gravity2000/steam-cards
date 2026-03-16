@@ -54,17 +54,18 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
         raise HTTPException(status_code=401,detail="请先登录")
     return username
 
-def send_email(to_email:str,card_name:str,price:str,alert_prcie:float):
+def send_email(to_email:str,card_name:str,price:str,alert_price:float):
     import resend
     resend.api_key=os.getenv("RESEND_API_KEY")
     try:
-        resend.Email.send({
-            "from":"onboarding@resend.dev",
-            "to":to_email,
-            "sunbject":f"Steam 价格提醒:{card_name}",
-            "text":f"你关注的卡牌{card_name}当前价格为{price},已低于你设定的¥{alert_prcie}!"
+        email = resend.Emails.send({
+            "from": "onboarding@resend.dev",
+            "to": [to_email],
+            "subject": "Steam 价格提醒：" + card_name,
+            "text": "你关注的卡牌 " + card_name + " 当前价格为 " + price + "，已低于你设定的 ¥" + str(alert_price) + "！"
         })
-        print(f"邮件发送成功:{to_email}")
+        
+        print(f"邮件发送成功:{email}")
     except Exception as e:
         print(f"邮件发送失败,{e}")
 
