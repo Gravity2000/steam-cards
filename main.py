@@ -58,6 +58,7 @@ def send_email(to_email:str,card_name:str,price:str,alert_price:float):
     import resend
     resend.api_key=os.getenv("RESEND_API_KEY")
     print(f"API Key: {resend.api_key}")  # 调试用
+    print(f"所有环境变量: {dict(os.environ)}")
     try:
         email = resend.Emails.send({
             "from": "onboarding@resend.dev",
