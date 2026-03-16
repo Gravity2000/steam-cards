@@ -11,7 +11,7 @@ from email.mime.text import MIMEText
 from urllib.parse import unquote
 from dotenv import load_dotenv
 import os
-load_dotenv()
+load_dotenv(override=False)
 
 app=FastAPI()
 
@@ -57,7 +57,6 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
 def send_email(to_email:str,card_name:str,price:str,alert_price:float):
     import resend
     resend.api_key=os.getenv("RESEND_API_KEY")
-    resend.api_key = os.getenv("RESEND_API_KEY")
     print(f"API Key: {resend.api_key}")  # 调试用
     try:
         email = resend.Emails.send({
