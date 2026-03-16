@@ -9,6 +9,7 @@ from auth import hash_password,verify_password,create_token,decode_token
 import smtplib
 from email.mime.text import MIMEText
 from urllib.parse import unquote
+import resend
 from dotenv import load_dotenv
 import os
 load_dotenv(override=False)
@@ -16,7 +17,8 @@ load_dotenv(override=False)
 app=FastAPI()
 
 #数据库配置
-engine=create_engine("sqlite:///cards.db")
+DATABASE_URL=os.getenv("DATABASE_URL","sqlite:///cards.db")
+engine=create_engine(DATABASE_URL)
 Base=declarative_base()
 SessionLocal=sessionmaker(bind=engine)
 oauth2_scheme=OAuth2PasswordBearer(tokenUrl="login")
@@ -55,7 +57,6 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
     return username
 
 def send_email(to_email:str,card_name:str,price:str,alert_price:float):
-    import resend
     resend.api_key=os.getenv("RESEND_API_KEY")
     try:
         email = resend.Emails.send({
