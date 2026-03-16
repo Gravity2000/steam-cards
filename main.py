@@ -57,8 +57,6 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
 def send_email(to_email:str,card_name:str,price:str,alert_price:float):
     import resend
     resend.api_key=os.getenv("RESEND_API_KEY")
-    print(f"API Key: {resend.api_key}")  # 调试用
-    print(f"所有环境变量: {dict(os.environ)}")
     try:
         email = resend.Emails.send({
             "from": "onboarding@resend.dev",
@@ -89,7 +87,7 @@ def refresh_all_prices():
 
 #定时任务
 schedular=BackgroundScheduler()
-schedular.add_job(refresh_all_prices,"interval",minutes=1)
+schedular.add_job(refresh_all_prices,"interval",hours=1)
 schedular.start()
 
 @app.get("/")
