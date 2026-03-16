@@ -5,7 +5,7 @@ from passlib.context import CryptContext
 #密钥和算法配置
 SECRET_KEY="你的密钥随便写一串字符"
 ALGORITHM="HS256"
-ACCESS_TOKEN_EXPIRE_MINUTES=30
+ACCESS_TOKEN_EXPIRE_MINUTES=60 * 24 * 7
 
 #密码加密工具
 pwd_context=CryptContext(schemes=["bcrypt"],deprecated="auto")

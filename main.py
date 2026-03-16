@@ -8,6 +8,10 @@ from steam import get_card_price
 from auth import hash_password,verify_password,create_token,decode_token
 import smtplib
 from email.mime.text import MIMEText
+from urllib.parse import unquote
+from dotenv import load_dotenv
+import os
+load_dotenv()
 
 app=FastAPI()
 
@@ -33,6 +37,7 @@ class Card(Base):
     alert_price=Column(Float,nullable=True)
     last_price=Column(String,nullable=True)
     owner=Column(String)
+    image_url=Column(String,nullable=True)
 
 Base.metadata.create_all(engine)
 
@@ -50,8 +55,8 @@ def get_current_user(token:str=Depends(oauth2_scheme)):
     return username
 
 def send_email(to_email:str,card_name:str,price:str,alert_prcie:float):
-    EMAIL_SENDER="cardpricereminder@163.com"
-    EMAIL_PASSWORD="NAwbF8m6qqkpTMpa"
+    EMAIL_SENDER=os.getenv("EMAIL_SENDER")
+    EMAIL_PASSWORD=os.getenv("EMAIL_PASSWORD")
     msg=MIMEText(f"你关注的卡牌{card_name}当前价格为{price},已低于你设定的¥{alert_prcie}!")
     msg["Subject"]=f"steam 价格提醒:{card_name}"
     msg["From"]=EMAIL_SENDER
@@ -81,7 +86,7 @@ def refresh_all_prices():
 
 #定时任务
 schedular=BackgroundScheduler()
-schedular.add_job(refresh_all_prices,"interval",hours=1)
+schedular.add_job(refresh_all_prices,"interval",mintues=1)
 schedular.start()
 
 @app.get("/")
@@ -110,14 +115,15 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
 @app.get("/cards")
 def get_cards(db:Session=Depends(get_db),username:str=Depends(get_current_user)):
     cards=db.query(Card).filter(Card.owner==username).all()
-    return{"cards":[{"id":c.id,"name":c.name,"alert_price":c.alert_price,"last_price":c.last_price}for c in cards]}
+    return{"cards":[{"id":c.id,"name":c.name,"alert_price":c.alert_price,"last_price":c.last_price,"image_url":c.image_url}for c in cards]}
 
 @app.post("/cards")
 def add_card(name :str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
+    name=unquote(name)
     result=get_card_price(name)
     if not result["success"]:
         return {"success":False,"message":"找不到该商品，请检查商品名"}
-    card=Card(name=name,last_price=result["lowest_price"],owner=username)
+    card=Card(name=name,last_price=result["lowest_price"],owner=username,image_url=result.get("image_url"))
     db.add(card)
     db.commit()
     return{"success":True,"message":"添加成功","price":result["lowest_price"]}
@@ -149,3 +155,12 @@ def refresh_prices(db:Session=Depends(get_db),username:str=Depends(get_current_u
             card.last_price=result["lowest_price"]
             db.commit()
     return {"success":True,"message":"价格刷新成功"}
+
+@app.put("/user/email")
+def update_email(email:str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
+    user=db.query(User).filter(User.username==username).first()
+    if user:
+        user.email=email
+        db.commit()
+        return {"success":True,"message":"邮箱更新成功"}
+    return {"success":False,"message":"用户不存在"}

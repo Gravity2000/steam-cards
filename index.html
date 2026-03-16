@@ -1,44 +1,50 @@
-html<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="zh">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Steam 卡牌价格监控</title>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial, sans-serif; background: #1b2838; color: #c6d4df; min-height: 100vh; }
-        .header { background: #171a21; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
-        .header h1 { color: #66c0f4; font-size: 20px; }
-        .header-right { display: flex; gap: 12px; align-items: center; }
-        .container { max-width: 900px; margin: 32px auto; padding: 0 16px; }
-        .auth-box { background: #2a3f5f; border-radius: 8px; padding: 32px; max-width: 400px; margin: 80px auto; }
-        .auth-box h2 { color: #66c0f4; margin-bottom: 24px; text-align: center; }
-        input { width: 100%; padding: 10px; margin-bottom: 12px; background: #1b2838; border: 1px solid #4a7a9b; border-radius: 4px; color: #c6d4df; font-size: 14px; }
-        button { padding: 10px 20px; border: none; border-radius: 4px; cursor: pointer; font-size: 14px; }
-        .btn-primary { background: #66c0f4; color: #1b2838; font-weight: bold; }
-        .btn-primary:hover { background: #4fa3d4; }
-        .btn-danger { background: #c94f4f; color: white; }
-        .btn-danger:hover { background: #a33; }
-        .btn-secondary { background: #4a7a9b; color: white; }
-        .btn-secondary:hover { background: #3a6a8b; }
-        .btn-logout { background: transparent; color: #c6d4df; border: 1px solid #4a7a9b; }
-        .card-list { display: grid; gap: 16px; }
-        .card-item { background: #2a3f5f; border-radius: 8px; padding: 20px; display: flex; justify-content: space-between; align-items: center; }
-        .card-info h3 { color: #66c0f4; margin-bottom: 8px; }
-        .card-info p { font-size: 14px; color: #8f98a0; margin-bottom: 4px; }
-        .card-price { font-size: 24px; color: #4caf50; font-weight: bold; }
-        .card-actions { display: flex; gap: 8px; align-items: center; flex-direction: column; }
-        .alert-input { display: flex; gap: 8px; }
-        .alert-input input { margin: 0; width: 150px; }
-        .add-box { background: #2a3f5f; border-radius: 8px; padding: 20px; margin-bottom: 24px; display: flex; gap: 12px; }
-        .add-box input { margin: 0; flex: 1; }
-        .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
-        .message { padding: 10px 16px; border-radius: 4px; margin-bottom: 16px; display: none; }
-        .message.success { background: #1a3a2a; color: #4caf50; display: block; }
-        .message.error { background: #3a1a1a; color: #f44336; display: block; }
-        .auth-switch { text-align: center; margin-top: 16px; font-size: 14px; color: #8f98a0; }
-        .auth-switch a { color: #66c0f4; cursor: pointer; }
-        .username-display { color: #66c0f4; font-size: 14px; }
+       * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; background: #f5f6fa; color: #2d3436; min-height: 100vh; }
+    .header { background: #ffffff; padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .header h1 { color: #2d3436; font-size: 20px; font-weight: 600; }
+    .header-right { display: flex; gap: 12px; align-items: center; }
+    .container { max-width: 1000px; margin: 32px auto; padding: 0 16px; }
+    .auth-box { background: #ffffff; border-radius: 12px; padding: 40px; max-width: 420px; margin: 80px auto; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+    .auth-box h2 { color: #2d3436; margin-bottom: 24px; text-align: center; font-size: 24px; }
+    input { width: 100%; padding: 11px 14px; margin-bottom: 12px; background: #f5f6fa; border: 1.5px solid #dfe6e9; border-radius: 8px; color: #2d3436; font-size: 14px; outline: none; transition: border 0.2s; }
+    input:focus { border-color: #0984e3; background: #fff; }
+    button { padding: 10px 20px; border: none; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; transition: all 0.2s; }
+    .btn-primary { background: #0984e3; color: white; }
+    .btn-primary:hover { background: #0773c5; }
+    .btn-danger { background: #ff7675; color: white; }
+    .btn-danger:hover { background: #e05c5c; }
+    .btn-secondary { background: #74b9ff; color: white; }
+    .btn-secondary:hover { background: #5aa3f0; }
+    .btn-logout { background: transparent; color: #636e72; border: 1.5px solid #dfe6e9; }
+    .btn-logout:hover { background: #f5f6fa; }
+    .card-list { display: grid; gap: 16px; }
+    .card-item { background: #ffffff; border-radius: 12px; padding: 20px; display: flex; gap: 16px; align-items: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06); transition: box-shadow 0.2s; }
+    .card-item:hover { box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+    .card-img { width: 80px; height: 80px; object-fit: contain; border-radius: 8px; background: #f5f6fa; }
+    .card-img-placeholder { width: 80px; height: 80px; border-radius: 8px; background: #f5f6fa; display: flex; align-items: center; justify-content: center; color: #b2bec3; font-size: 24px; }
+    .card-info { flex: 1; }
+    .card-info h3 { color: #2d3436; margin-bottom: 6px; font-size: 15px; }
+    .card-info p { font-size: 13px; color: #636e72; }
+    .card-price { font-size: 22px; color: #00b894; font-weight: 700; min-width: 100px; text-align: center; }
+    .card-actions { display: flex; gap: 8px; align-items: center; flex-direction: column; }
+    .alert-input { display: flex; gap: 8px; }
+    .alert-input input { margin: 0; width: 150px; }
+    .add-box { background: #ffffff; border-radius: 12px; padding: 20px; margin-bottom: 24px; display: flex; gap: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .add-box input { margin: 0; flex: 1; }
+    .toolbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; color: #636e72; font-size: 14px; }
+    .message { padding: 10px 16px; border-radius: 8px; margin-bottom: 16px; display: none; font-size: 14px; }
+    .message.success { background: #d4edda; color: #155724; display: block; }
+    .message.error { background: #f8d7da; color: #721c24; display: block; }
+    .auth-switch { text-align: center; margin-top: 16px; font-size: 14px; color: #636e72; }
+    .auth-switch a { color: #0984e3; cursor: pointer; text-decoration: none; }
+    .username-display { color: #636e72; font-size: 14px; font-weight: 500; }
     </style>
 </head>
 <body>
@@ -46,9 +52,22 @@ html<!DOCTYPE html>
 <div class="header">
     <h1>🎴 Steam 卡牌价格监控</h1>
     <div class="header-right">
-        <span class="username-display" id="usernameDisplay"></span>
-        <button class="btn-logout" id="logoutBtn" style="display:none" onclick="logout()">退出登录</button>
+    <span class="username-display" id="usernameDisplay"></span>
+    <button class="btn-secondary" id="emailBtn" style="display:none" onclick="showEmailModal()">📧 设置邮箱</button>
+    <button class="btn-logout" id="logoutBtn" style="display:none" onclick="logout()">退出登录</button>
+</div>
+
+<!-- 邮箱设置弹窗 -->
+<div id="emailModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:100;">
+    <div style="background:#2a3f5f; border-radius:8px; padding:32px; max-width:400px; margin:200px auto; position:relative;">
+        <h3 style="color:#66c0f4; margin-bottom:16px;">设置邮箱</h3>
+        <input type="email" id="newEmail" placeholder="输入邮箱地址">
+        <div style="display:flex; gap:8px; margin-top:8px;">
+            <button class="btn-primary" style="flex:1" onclick="updateEmail()">确认</button>
+            <button class="btn-secondary" style="flex:1" onclick="closeEmailModal()">取消</button>
+        </div>
     </div>
+</div>
 </div>
 
 <!-- 登录/注册界面 -->
@@ -145,6 +164,7 @@ html<!DOCTYPE html>
         document.getElementById("authPage").style.display = "none";
         document.getElementById("mainPage").style.display = "block";
         document.getElementById("logoutBtn").style.display = "block";
+        document.getElementById("emailBtn").style.display = "block";
         const username = localStorage.getItem("username");
         if (username) document.getElementById("usernameDisplay").textContent = `👤 ${username}`;
         loadCards();
@@ -168,21 +188,25 @@ html<!DOCTYPE html>
         const list = document.getElementById("cardList");
         list.innerHTML = "";
         data.cards.forEach(card => {
-            list.innerHTML += `
-                <div class="card-item">
-                    <div class="card-info">
-                        <h3>${card.name}</h3>
-                        <p>提醒价格：${card.alert_price ? "¥ " + card.alert_price : "未设定"}</p>
+           list.innerHTML += `
+            <div class="card-item">
+                ${card.image_url
+                    ? `<img class="card-img" src="${card.image_url}" alt="${card.name}">`
+                    : `<div class="card-img-placeholder">🃏</div>`
+                 }       
+                <div class="card-info">
+                    <h3>${card.name}</h3>
+                     <p>提醒价格：${card.alert_price ? "¥ " + card.alert_price : "未设定"}</p>
+                </div>
+                <div class="card-price">${card.last_price || "获取中..."}</div>
+                <div class="card-actions">
+                    <div class="alert-input">
+                        <input type="number" id="alert_${card.id}" placeholder="${card.alert_price ? '已设定: ¥' + card.alert_price : '提醒价格'}">
+                        <button class="btn-secondary" onclick="setAlert(${card.id})">设定</button>
                     </div>
-                    <div class="card-price">${card.last_price || "获取中..."}</div>
-                    <div class="card-actions">
-                        <div class="alert-input">
-                            <input type="number" id="alert_${card.id}" placeholder="${card.alert_price ? '已设定: ¥' + card.alert_price : '提醒价格'}">
-                            <button class="btn-secondary" onclick="setAlert(${card.id})">设定</button>
-                        </div>
-                        <button class="btn-danger" onclick="deleteCard(${card.id})">删除</button>
-                    </div>
-                </div>`;
+                    <button class="btn-danger" onclick="deleteCard(${card.id})">删除</button>
+                </div>
+            </div>`;
         });
     }
 
@@ -242,6 +266,31 @@ html<!DOCTYPE html>
             loadCards();
         }
     }
+    
+    function showEmailModal() {
+    document.getElementById("emailModal").style.display = "block";
+}
+
+function closeEmailModal() {
+    document.getElementById("emailModal").style.display = "none";
+    document.getElementById("newEmail").value = "";
+}
+
+async function updateEmail() {
+    const email = document.getElementById("newEmail").value;
+    if (!email) { showMessage("请输入邮箱地址", "error", "mainMessage"); return; }
+    const res = await fetch(`/user/email?email=${encodeURIComponent(email)}`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}` }
+    });
+    const data = await res.json();
+    if (data.success) {
+        closeEmailModal();
+        showMessage("邮箱设置成功！", "success", "mainMessage");
+    } else {
+        showMessage(data.message, "error", "mainMessage");
+    }
+}
 
     function showMessage(text, type, id) {
         const el = document.getElementById(id);
