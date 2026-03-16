@@ -86,7 +86,7 @@ def refresh_all_prices():
 
 #定时任务
 schedular=BackgroundScheduler()
-schedular.add_job(refresh_all_prices,"interval",mintues=1)
+schedular.add_job(refresh_all_prices,"interval",minutes=1)
 schedular.start()
 
 @app.get("/")
