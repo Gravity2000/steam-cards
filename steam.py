@@ -35,9 +35,15 @@ def get_card_info(card_name:str):
                 image_url=f"https://community.fastly.steamstatic.com/economy/image/{icon}"
 
         if price_data.get("success")==True:
+            lowest_price_str = price_data.get("lowest_price", "无数据")
+            try:
+                lowest_price_float = float(lowest_price_str.replace("¥ ", "").replace(",", ""))
+            except:
+                lowest_price_float = None
             return {
                 "success":True,
-                "lowest_price":price_data.get("lowest_price","无数据"),
+                "lowest_price":lowest_price_str,
+                "lowest_price_float":lowest_price_float,
                 "volume":price_data.get("volume","无数据"),
                 "median_price":price_data.get("median_price","无数据"),
                 "image_url":image_url

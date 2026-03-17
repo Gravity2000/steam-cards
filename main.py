@@ -79,8 +79,8 @@ def refresh_all_prices():
             card.last_price=result["lowest_price"]
             db.commit()
             if card.alert_price:
-                price_value=float(result["lowest_price"].replace("¥ ","").replace(",",""))
-                if price_value<=card.alert_price:
+                price_value=result.get("lowest_price_float")
+                if  price_value and price_value<=card.alert_price:
                     user=db.query(User).filter(User.username==card.owner).first()
                     if user and user.email:
                         send_email(user.email,card.name,result["lowest_price"],card.alert_price)
