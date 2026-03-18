@@ -4,10 +4,8 @@ from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from sqlalchemy import create_engine,Column,Integer,String,Float
 from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from apscheduler.schedulers.background import BackgroundScheduler
-from steam import get_card_price
+from steam import get_card_info
 from auth import hash_password,verify_password,create_token,decode_token
-import smtplib
-from email.mime.text import MIMEText
 from urllib.parse import unquote
 import resend
 from dotenv import load_dotenv
@@ -73,9 +71,16 @@ def send_email(to_email:str,card_name:str,price:str,alert_price:float):
 def refresh_all_prices():
     db=SessionLocal()
     cards=db.query(Card).all()
+
+    unique_name=list(set(card.name for card in cards))
+    price_cache={}
+
+    for name in unique_name:
+        price_cache[name]=get_card_info(name)
+
     for card in cards:
-        result=get_card_price(card.name)
-        if result["success"]:
+        result=price_cache.get(card.name)
+        if result and result["success"]:
             card.last_price=result["lowest_price"]
             db.commit()
             if card.alert_price:
@@ -122,7 +127,7 @@ def get_cards(db:Session=Depends(get_db),username:str=Depends(get_current_user))
 @app.post("/cards")
 def add_card(name :str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
     name=unquote(name)
-    result=get_card_price(name)
+    result=get_card_info(name)
     if not result["success"]:
         return {"success":False,"message":"找不到该商品，请检查商品名"}
     card=Card(name=name,last_price=result["lowest_price"],owner=username,image_url=result.get("image_url"))
@@ -152,7 +157,7 @@ def delete_card(id:int,db:Session=Depends(get_db),username:str=Depends(get_curre
 def refresh_prices(db:Session=Depends(get_db),username:str=Depends(get_current_user)):
     cards=db.query(Card).filter(Card.owner==username).all()
     for card in cards:
-        result=get_card_price(card.name)
+        result=get_card_info(card.name)
         if result["success"]:
             card.last_price=result["lowest_price"]
             db.commit()

@@ -52,6 +52,3 @@ def get_card_info(card_name:str):
     except Exception as e:
         return {"success":False,"message":str(e)}
     
-def get_card_price(card_name:str):
-    result=get_card_info(card_name)
-    return result
