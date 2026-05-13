@@ -154,14 +154,21 @@ def delete_card(id:int,db:Session=Depends(get_db),username:str=Depends(get_curre
     return{"success":False,"message":"找不到该卡牌"}
 
 @app.post("/refresh")
-def refresh_prices(db:Session=Depends(get_db),username:str=Depends(get_current_user)):
-    cards=db.query(Card).filter(Card.owner==username).all()
+def refresh_prices(db: Session = Depends(get_db), username: str = Depends(get_current_user)):
+    cards = db.query(Card).filter(Card.owner == username).all()
     for card in cards:
-        result=get_card_info(card.name)
+        result = get_card_info(card.name)
         if result["success"]:
-            card.last_price=result["lowest_price"]
+            card.last_price = result["lowest_price"]
             db.commit()
-    return {"success":True,"message":"价格刷新成功"}
+            if card.alert_price:
+                price_value = result.get("lowest_price_float")
+                print(f"卡牌:{card.name} 当前价格:{price_value} 期望价格:{card.alert_price}")
+                if price_value and price_value <= card.alert_price:
+                    user = db.query(User).filter(User.username == username).first()
+                    if user and user.email:
+                        send_email(user.email, card.name, result["lowest_price"], card.alert_price)
+    return {"success": True, "message": "价格刷新成功"}
 
 @app.put("/user/email")
 def update_email(email:str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
