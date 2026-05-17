@@ -8,6 +8,9 @@ from steam import get_card_info
 from auth import hash_password,verify_password,create_token,decode_token
 from urllib.parse import unquote
 import resend
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from dotenv import load_dotenv
 import os
 load_dotenv(override=False)

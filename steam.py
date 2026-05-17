@@ -53,6 +53,9 @@ def get_card_info(card_name: str):
     except:
         lowest_price_float = None
 
+    
+    time.sleep(3)  # 每张卡间隔3秒
+
     return {
         "success": True,
         "lowest_price": lowest_price_str,
