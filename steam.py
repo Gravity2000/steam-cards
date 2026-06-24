@@ -1,5 +1,7 @@
 import requests
 import time
+import re
+import urllib.parse
 
 def get_card_info(card_name: str):
     # 获取价格
@@ -11,7 +13,7 @@ def get_card_info(card_name: str):
     }
 
     # 获取图片
-    listing_url = f"https://steamcommunity.com/market/listings/753/{card_name}/render"
+    listing_url = f"https://steamcommunity.com/market/listings/753/{urllib.parse.quote(card_name)}/render"
     listing_params = {
         "start": 0,
         "currency": 23,
@@ -34,15 +36,21 @@ def get_card_info(card_name: str):
 
     try:
         image_url = None
-        listing_res = requests.get(listing_url, params=listing_params, timeout=15)
-        listing_data = listing_res.json()
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+        }
+        listing_res = requests.get(listing_url, params=listing_params, timeout=15, headers=headers)
 
-        assets = listing_data.get("assets", {}).get("753", {}).get("6", {})
-        if assets:
-            first_asset = list(assets.values())[0]
-            icon = first_asset.get("icon_url")
-            if icon:
-                image_url = f"https://community.fastly.steamstatic.com/economy/image/{icon}"
+        # /render 接口现在返回 HTML 而非 JSON，从 HTML 中提取图片 URL
+        match = re.search(r'https://community\.steamstatic\.com/economy/image/[^"\'\\\s]+', listing_res.text)
+        if match:
+            image_url = match.group(0)
+        else:
+            # 备选：从 HTML 中提取 icon_url 字段
+            match2 = re.search(r'icon_url\\":\\"([^\\]+)', listing_res.text)
+            if match2:
+                icon = match2.group(1)
+                image_url = f"https://community.steamstatic.com/economy/image/{icon}"
     except Exception as e:
         print(f"图片请求失败: {e}")
         image_url = None
