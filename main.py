@@ -4,7 +4,7 @@ from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from sqlalchemy import create_engine,Column,Integer,String,Float
 from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from apscheduler.schedulers.background import BackgroundScheduler
-from steam import get_card_info
+from steam import get_card_info, get_card_info_with_image
 from auth import hash_password,verify_password,create_token,decode_token
 from urllib.parse import unquote
 import resend
@@ -130,7 +130,7 @@ def get_cards(db:Session=Depends(get_db),username:str=Depends(get_current_user))
 @app.post("/cards")
 def add_card(name :str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
     name=unquote(name)
-    result=get_card_info(name)
+    result=get_card_info_with_image(name)
     if not result["success"]:
         return {"success":False,"message":"找不到该商品，请检查商品名"}
     card=Card(name=name,last_price=result["lowest_price"],owner=username,image_url=result.get("image_url"))
