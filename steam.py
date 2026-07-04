@@ -2,6 +2,7 @@ import requests
 import time
 import re
 import urllib.parse
+import random
 
 def _get_price(card_name: str):
     """只获取价格"""
@@ -69,7 +70,8 @@ def _get_image(card_name: str):
 def get_card_info(card_name: str):
     """仅获取价格（刷新用，不请求图片）"""
     result = _get_price(card_name)
-    time.sleep(2)
+    delay = random.uniform(5, 10)
+    time.sleep(delay)
     return result
 
 
@@ -78,5 +80,6 @@ def get_card_info_with_image(card_name: str):
     result = _get_price(card_name)
     if result["success"]:
         result["image_url"] = _get_image(card_name)
-    time.sleep(2)
+    delay = random.uniform(5, 10)
+    time.sleep(delay)
     return result
