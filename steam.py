@@ -3,6 +3,7 @@ import time
 import re
 import urllib.parse
 import random
+import threading
 
 def _get_price(card_name: str):
     """只获取价格"""
@@ -43,6 +44,10 @@ def _get_price(card_name: str):
             print(f"价格请求第{attempt+1}次失败: {e}")
             if attempt < 2:
                 time.sleep(2)
+
+    # 判断是否因为限流导致失败
+    if 'resp' in locals() and resp.status_code == 429:
+        return {"success": False, "message": "Steam 限流"}
     return {"success": False, "message": "找不到该商品"}
 
 
@@ -67,9 +72,62 @@ def _get_image(card_name: str):
     return None
 
 
+# 全局请求节流：记录上次请求时间
+_last_request_time = 0
+_lock = threading.Lock()
+
+# 限流冷却机制
+_rate_limited_until = 0      # 冷却截止时间戳
+_cooldown_duration = 300      # 每次触发冷却持续 300 秒（5分钟）
+_cooldown_streak = 0          # 连续限流次数，用于指数递增冷却
+
+def _check_cooldown():
+    """检查是否处于冷却期，如果是则等待冷却结束"""
+    global _rate_limited_until
+    now = time.time()
+    if now < _rate_limited_until:
+        wait = _rate_limited_until - now
+        print(f"⏳ 处于冷却期，等待 {wait:.0f} 秒后继续...")
+        time.sleep(wait)
+
+def _trigger_cooldown():
+    """触发冷却，记录冷却截止时间（指数递增）"""
+    global _rate_limited_until, _cooldown_streak, _cooldown_duration
+    with _lock:
+        _cooldown_streak += 1
+        duration = _cooldown_duration * _cooldown_streak  # 连续限流则翻倍：5min, 10min, 15min...
+        _rate_limited_until = time.time() + duration
+        print(f"🚫 触发冷却！暂停 {duration} 秒（第 {_cooldown_streak} 次限流）")
+
+def _clear_cooldown():
+    """一次成功的请求后，逐渐降低冷却等级"""
+    global _cooldown_streak
+    if _cooldown_streak > 0:
+        with _lock:
+            _cooldown_streak = max(0, _cooldown_streak - 1)
+
+def _throttle(min_interval: float = 3.0):
+    """确保两次请求之间至少间隔 min_interval 秒"""
+    global _last_request_time
+    _check_cooldown()
+    with _lock:
+        now = time.time()
+        elapsed = now - _last_request_time
+        if elapsed < min_interval:
+            time.sleep(min_interval - elapsed)
+        _last_request_time = time.time()
+
+
 def get_card_info(card_name: str):
     """仅获取价格（刷新用，不请求图片）"""
+    _throttle(3.0)
     result = _get_price(card_name)
+
+    if not result.get("success") and "限流" in result.get("message", ""):
+        _trigger_cooldown()
+    elif result.get("success"):
+        _clear_cooldown()
+
     delay = random.uniform(5, 10)
     time.sleep(delay)
     return result
@@ -77,9 +135,16 @@ def get_card_info(card_name: str):
 
 def get_card_info_with_image(card_name: str):
     """获取价格 + 图片（添加卡牌时用）"""
+    _throttle(3.0)
     result = _get_price(card_name)
     if result["success"]:
         result["image_url"] = _get_image(card_name)
+
+    if not result.get("success") and "限流" in result.get("message", ""):
+        _trigger_cooldown()
+    elif result.get("success"):
+        _clear_cooldown()
+
     delay = random.uniform(5, 10)
     time.sleep(delay)
     return result

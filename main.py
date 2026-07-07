@@ -95,9 +95,9 @@ def refresh_all_prices():
                         send_email(user.email,card.name,result["lowest_price"],card.alert_price)
     db.close()
 
-#定时任务
+#定时任务 - 每60分钟刷新一次，减少 Steam 限流风险
 schedular=BackgroundScheduler()
-schedular.add_job(refresh_all_prices,"interval",minutes=30)
+schedular.add_job(refresh_all_prices,"interval",minutes=60)
 schedular.start()
 
 @app.get("/")
@@ -159,41 +159,40 @@ def delete_card(id:int,db:Session=Depends(get_db),username:str=Depends(get_curre
 
 @app.post("/refresh")
 def refresh_prices(username: str = Depends(get_current_user)):
-    """后台刷新价格，立即返回避免超时"""
+    """后台异步刷新价格，配合冷却机制，不阻塞其他用户"""
     def _do_refresh():
         db = SessionLocal()
         try:
             cards = db.query(Card).filter(Card.owner == username).all()
-            # 按卡牌名去重
             unique_names = list(set(card.name for card in cards))
-            price_cache = {}
+            refreshed = 0
+            failed = 0
             for name in unique_names:
                 result = get_card_info(name)
                 if result["success"]:
-                    price_cache[name] = result
+                    for card in cards:
+                        if card.name == name:
+                            card.last_price = result["lowest_price"]
+                            db.commit()
+                            if card.alert_price:
+                                price_value = result.get("lowest_price_float")
+                                print(f"卡牌:{card.name} 当前价格:{price_value} 期望价格:{card.alert_price}")
+                                if price_value and price_value <= card.alert_price:
+                                    user = db.query(User).filter(User.username == username).first()
+                                    if user and user.email:
+                                        send_email(user.email, card.name, result["lowest_price"], card.alert_price)
+                    refreshed += 1
                 else:
-                    print(f"卡牌 [{name}] 刷新失败")
-
-            for card in cards:
-                result = price_cache.get(card.name)
-                if not result or not result["success"]:
-                    continue
-                card.last_price = result["lowest_price"]
-                db.commit()
-                if card.alert_price:
-                    price_value = result.get("lowest_price_float")
-                    print(f"卡牌:{card.name} 当前价格:{price_value} 期望价格:{card.alert_price}")
-                    if price_value and price_value <= card.alert_price:
-                        user = db.query(User).filter(User.username == username).first()
-                        if user and user.email:
-                            send_email(user.email, card.name, result["lowest_price"], card.alert_price)
+                    print(f"卡牌 [{name}] 刷新失败: {result.get('message', '未知错误')}")
+                    failed += 1
+            print(f"✅ 用户 [{username}] 刷新完成：成功 {refreshed} 张，失败 {failed} 张")
         except Exception as e:
             print(f"刷新价格出错: {e}")
         finally:
             db.close()
 
     threading.Thread(target=_do_refresh, daemon=True).start()
-    return {"success": True, "message": "价格刷新已启动（后台运行中）"}
+    return {"success": True, "message": "价格刷新已启动，请稍后查看终端日志"}
 
 @app.put("/user/email")
 def update_email(email:str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
