@@ -85,8 +85,10 @@ def refresh_all_prices():
     for card in cards:
         result=price_cache.get(card.name)
         if result and result["success"]:
-            card.last_price=result["lowest_price"]
-            db.commit()
+            # Steam 返回"无数据"时不覆盖旧价格
+            if result.get("lowest_price") and result["lowest_price"] != "无数据":
+                card.last_price=result["lowest_price"]
+                db.commit()
             if card.alert_price:
                 price_value=result.get("lowest_price_float")
                 if  price_value and price_value<=card.alert_price:
@@ -172,8 +174,10 @@ def refresh_prices(username: str = Depends(get_current_user)):
                 if result["success"]:
                     for card in cards:
                         if card.name == name:
-                            card.last_price = result["lowest_price"]
-                            db.commit()
+                            # Steam 返回"无数据"时不覆盖旧价格
+                            if result.get("lowest_price") and result["lowest_price"] != "无数据":
+                                card.last_price = result["lowest_price"]
+                                db.commit()
                             if card.alert_price:
                                 price_value = result.get("lowest_price_float")
                                 print(f"卡牌:{card.name} 当前价格:{price_value} 期望价格:{card.alert_price}")
