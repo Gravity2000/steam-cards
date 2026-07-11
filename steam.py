@@ -4,11 +4,15 @@ import re
 import urllib.parse
 import random
 import threading
+import os
 
 # ============================================================
 # 全局 Session（复用连接 + Cookie，模拟真实浏览器）
+# 走 Clash 代理避免 Steam 限流
 # ============================================================
+PROXY = os.environ.get("HTTP_PROXY") or os.environ.get("http_proxy") or "http://127.0.0.1:7890"
 _session = requests.Session()
+_session.proxies = {"http": PROXY, "https": PROXY}
 _session.headers.update({
     "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
     "Accept": "application/json, text/plain, */*",
