@@ -4,17 +4,17 @@ from fastapi.security import OAuth2PasswordBearer,OAuth2PasswordRequestForm
 from sqlalchemy import create_engine,Column,Integer,String,Float
 from sqlalchemy.orm import declarative_base,sessionmaker,Session
 from apscheduler.schedulers.background import BackgroundScheduler
+from dotenv import load_dotenv
+import os
+load_dotenv(override=False)
 from steam import get_card_info, get_card_info_with_image
 from auth import hash_password,verify_password,create_token,decode_token
 from urllib.parse import unquote
 import resend
 import smtplib
-import threading
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from dotenv import load_dotenv
-import os
-load_dotenv(override=False)
+import threading
 
 app=FastAPI()
 
@@ -161,20 +161,17 @@ def delete_card(id:int,db:Session=Depends(get_db),username:str=Depends(get_curre
 
 @app.post("/refresh")
 def refresh_prices(username: str = Depends(get_current_user)):
-    """后台异步刷新价格，配合冷却机制，不阻塞其他用户"""
-    def _do_refresh():
+    """异步后台刷新，立即返回"""
+    def _run():
         db = SessionLocal()
         try:
             cards = db.query(Card).filter(Card.owner == username).all()
             unique_names = list(set(card.name for card in cards))
-            refreshed = 0
-            failed = 0
             for name in unique_names:
                 result = get_card_info(name)
                 if result["success"]:
                     for card in cards:
                         if card.name == name:
-                            # Steam 返回"无数据"时不覆盖旧价格
                             if result.get("lowest_price") and result["lowest_price"] != "无数据":
                                 card.last_price = result["lowest_price"]
                                 db.commit()
@@ -185,18 +182,14 @@ def refresh_prices(username: str = Depends(get_current_user)):
                                     user = db.query(User).filter(User.username == username).first()
                                     if user and user.email:
                                         send_email(user.email, card.name, result["lowest_price"], card.alert_price)
-                    refreshed += 1
                 else:
-                    print(f"卡牌 [{name}] 刷新失败: {result.get('message', '未知错误')}")
-                    failed += 1
-            print(f"✅ 用户 [{username}] 刷新完成：成功 {refreshed} 张，失败 {failed} 张")
+                    print(f"卡牌 [{name}] 刷新失败: {result.get('message')}")
         except Exception as e:
-            print(f"刷新价格出错: {e}")
+            print(f"刷新出错: {e}")
         finally:
             db.close()
-
-    threading.Thread(target=_do_refresh, daemon=True).start()
-    return {"success": True, "message": "价格刷新已启动，请稍后查看终端日志"}
+    threading.Thread(target=_run, daemon=True).start()
+    return {"success": True, "message": "刷新已启动"}
 
 @app.put("/user/email")
 def update_email(email:str,db:Session=Depends(get_db),username:str=Depends(get_current_user)):
