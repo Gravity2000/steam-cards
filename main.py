@@ -79,8 +79,10 @@ def refresh_all_prices():
     unique_name=list(set(card.name for card in cards))
     price_cache={}
 
+    print(f"[定时任务] 开始刷新 {len(unique_name)} 种卡牌价格...")
     for name in unique_name:
         price_cache[name]=get_card_info(name)
+        print(f"[定时任务] 查询 [{name}] -> {price_cache[name].get('lowest_price', '失败')}")
 
     for card in cards:
         result=price_cache.get(card.name)
@@ -89,12 +91,15 @@ def refresh_all_prices():
             if result.get("lowest_price") and result["lowest_price"] != "无数据":
                 card.last_price=result["lowest_price"]
                 db.commit()
+                print(f"[定时任务] 更新 [{card.name}] 价格: {result['lowest_price']}")
             if card.alert_price:
                 price_value=result.get("lowest_price_float")
+                print(f"[定时任务] [{card.name}] 当前价格:{price_value} 期望价格:{card.alert_price}")
                 if  price_value and price_value<=card.alert_price:
                     user=db.query(User).filter(User.username==card.owner).first()
                     if user and user.email:
                         send_email(user.email,card.name,result["lowest_price"],card.alert_price)
+    print("[定时任务] 刷新完成")
     db.close()
 
 #定时任务 - 每60分钟刷新一次，减少 Steam 限流风险
@@ -167,6 +172,7 @@ def refresh_prices(username: str = Depends(get_current_user)):
         try:
             cards = db.query(Card).filter(Card.owner == username).all()
             unique_names = list(set(card.name for card in cards))
+            print(f"[手动刷新] 用户 {username} 开始刷新 {len(unique_names)} 种卡牌...")
             for name in unique_names:
                 result = get_card_info(name)
                 if result["success"]:
