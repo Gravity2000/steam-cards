@@ -20,7 +20,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger("steam-tracker")
 
-from steam import get_card_info, get_card_info_with_image
+from steam import get_card_info, get_card_info_with_image, start_new_session
 from auth import hash_password,verify_password,create_token,decode_token
 from urllib.parse import unquote
 import resend
@@ -105,6 +105,7 @@ def refresh_all_prices():
         unique_name=list(set(card.name for card in cards))
         price_cache={}
 
+        start_new_session()  # 每一轮批量刷新前换一个新的 Steam session，避免单个session请求数累积过多
         logger.info(f"[定时任务] 开始刷新 {len(unique_name)} 种卡牌价格...")
         for name in unique_name:
             price_cache[name]=get_card_info(name)
@@ -170,7 +171,9 @@ def add_card(name :str,db:Session=Depends(get_db),username:str=Depends(get_curre
     logger.info(f"[添加卡牌] 用户 {username} 添加: {name}")
     result=get_card_info_with_image(name)
     if not result["success"]:
-        logger.warning(f"[添加卡牌] 查询失败: {name}")
+        logger.warning(f"[添加卡牌] 查询失败: {name} -> {result.get('message')}")
+        if result.get("rate_limited"):
+            return {"success":False,"message":result.get("message","当前被Steam限流，请稍后再试")}
         return {"success":False,"message":"找不到该商品，请检查商品名"}
     card=Card(name=name,last_price=result["lowest_price"],owner=username,image_url=result.get("image_url"))
     db.add(card)
@@ -215,6 +218,7 @@ def refresh_prices(username: str = Depends(get_current_user)):
         try:
             cards = db.query(Card).filter(Card.owner == username).all()
             unique_names = list(set(card.name for card in cards))
+            start_new_session()  # 每一轮批量刷新前换一个新的 Steam session，避免单个session请求数累积过多
             logger.info(f"[手动刷新] 用户 {username} 开始刷新 {len(unique_names)} 种卡牌...")
             for name in unique_names:
                 result = get_card_info(name)
